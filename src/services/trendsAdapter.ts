@@ -1,53 +1,63 @@
 // src/services/trendsAdapter.ts
 import axios from "axios";
+import TrendModel from "../models/Trend"; // adjust path if needed
 
-const NEWS_API_URL =
-  "https://newsapi.org/v2/top-headlines?language=en&pageSize=20";
-const API_KEY = process.env.NEWS_API_KEY || "";
-
-interface Article {
-  title: string;
-  description: string;
-  url: string;
-  urlToImage: string;
-  publishedAt: string;
-}
+const API_KEY = process.env.GNEWS_API_KEY;
+const MAX_RETRIES = 3;
 
 async function fetchWithRetry(
   url: string,
-  headers: any,
-  retries = 3,
-  delay = 1000
+  retries = MAX_RETRIES
 ): Promise<any> {
   try {
-    const response = await axios.get(url, { headers });
+    const response = await axios.get(url);
     return response.data;
-  } catch (err: any) {
+  } catch (error: any) {
     if (retries > 0) {
-      console.warn(`Request failed: ${err.message}. Retrying in ${delay}ms...`);
+      const delay = (MAX_RETRIES - retries + 1) * 1000;
+      console.warn(
+        `Request failed: ${error.message}. Retrying in ${delay}ms...`
+      );
       await new Promise((res) => setTimeout(res, delay));
-      return fetchWithRetry(url, headers, retries - 1, delay * 2); // exponential backoff
-    } else {
-      throw err; // after all retries fail
+      return fetchWithRetry(url, retries - 1);
     }
+    throw error;
   }
 }
 
-export async function fetchAndStoreTrends(): Promise<Article[]> {
-  const headers = {
-    "X-Api-Key": API_KEY,
-    Accept: "application/json",
-    "User-Agent": "axios/1.11.0",
-  };
+export async function fetchAndStoreTrends() {
+  if (!API_KEY) {
+    console.error("GNEWS_API_KEY is not set in .env");
+    return;
+  }
+
+  const url = `https://gnews.io/api/v4/top-headlines?lang=en&max=20&token=${API_KEY}`;
 
   try {
-    const data = await fetchWithRetry(NEWS_API_URL, headers);
-    if (!data.articles) return [];
+    const data = await fetchWithRetry(url);
+    const articles = data.articles;
 
-    // Optionally: save articles to DB here
-    return data.articles as Article[];
-  } catch (err) {
-    console.error("Failed to fetch NewsAPI articles after retries:", err);
-    return []; // return empty array so server continues running
+    if (!articles || articles.length === 0) {
+      console.warn("No articles returned from GNews.");
+      return;
+    }
+
+    // Optional: clear old trends
+    await TrendModel.deleteMany({});
+
+    // Save new trends
+    const trendDocs = articles.map((article: any) => ({
+      title: article.title,
+      description: article.description,
+      url: article.url,
+      imageUrl: article.image,
+      source: article.source.name,
+      publishedAt: new Date(article.publishedAt),
+    }));
+
+    await TrendModel.insertMany(trendDocs);
+    console.log(`Fetched and stored ${trendDocs.length} GNews articles.`);
+  } catch (error: any) {
+    console.error("Failed to fetch/store GNews articles:", error.message);
   }
 }
