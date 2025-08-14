@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: trendsphere-api
+    env: node
+    plan: free
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: CLIENT_ORIGIN
+        value: https://your-netlify-site.netlify.app
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: NEWS_API_KEY
+        sync: false
+      - key: RAPIDAPI_KEY
+        sync: false
+      - key: API_FOOTBALL_HOST
+        value: v3.football.api-sports.io
+      - key: OPENAI_API_KEY
+        sync: false
