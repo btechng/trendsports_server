@@ -15,6 +15,7 @@ import leaderboardRoute from "./routes/leaderboard.js";
 import { fetchAndStoreTrends } from "./services/trendsAdapter.js";
 import { fetchUpcomingFootball } from "./services/sportsAdapter.js";
 import { predictForUpcoming } from "./services/aiPredictor.js";
+import newsRouter from "./routes/news";
 
 const app = express();
 app.use(helmet());
@@ -29,6 +30,7 @@ app.use("/api/sports", sportsRoute);
 app.use("/api/predictions", predictionsRoute);
 app.use("/api/comments", commentsRoute);
 app.use("/api/leaderboard", leaderboardRoute);
+app.use("/api/news", newsRouter);
 
 const server = http.createServer(app);
 setupSockets(server);
@@ -42,5 +44,7 @@ setupSockets(server);
   };
   await run();
   setInterval(run, 5 * 60 * 1000);
-  server.listen(ENV.PORT, () => console.log(`🚀 API http://localhost:${ENV.PORT}`));
+  server.listen(ENV.PORT, () =>
+    console.log(`🚀 API http://localhost:${ENV.PORT}`)
+  );
 })();
