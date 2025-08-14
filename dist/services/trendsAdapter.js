@@ -1,33 +1,51 @@
+// src/services/trendsAdapter.ts
 import axios from "axios";
-import Trend from "../models/Trend.js";
-import { ENV } from "../config/env.js";
-import { quickSentiment } from "../utils/sentiment.js";
-export async function fetchAndStoreTrends() {
-    if (!ENV.NEWS_API_KEY) {
-        const mocks = [
-            { title: "Tech stocks surge after earnings", source: "MockNews", location: "US-CA", lat: 37.77, lng: -122.4, url: "", publishedAt: new Date(), tags: ["tech", "stocks"] },
-            { title: "Fuel price protests in Lagos", source: "MockNews", location: "NG-Lagos", lat: 6.5244, lng: 3.3792, url: "", publishedAt: new Date(), tags: ["economy", "protest"] },
-            { title: "Heatwave warnings across Europe", source: "MockNews", location: "EU", lat: 50.11, lng: 8.68, url: "", publishedAt: new Date(), tags: ["weather"] }
-        ];
-        for (const m of mocks) {
-            const sentiment = quickSentiment(m.title);
-            await Trend.findOneAndUpdate({ title: m.title, source: m.source }, { ...m, sentiment }, { upsert: true });
+import TrendModel from "../models/Trend"; // adjust path if needed
+const API_KEY = process.env.GNEWS_API_KEY;
+const MAX_RETRIES = 3;
+async function fetchWithRetry(url, retries = MAX_RETRIES) {
+    try {
+        const response = await axios.get(url);
+        return response.data;
+    }
+    catch (error) {
+        if (retries > 0) {
+            const delay = (MAX_RETRIES - retries + 1) * 1000;
+            console.warn(`Request failed: ${error.message}. Retrying in ${delay}ms...`);
+            await new Promise((res) => setTimeout(res, delay));
+            return fetchWithRetry(url, retries - 1);
         }
+        throw error;
+    }
+}
+export async function fetchAndStoreTrends() {
+    if (!API_KEY) {
+        console.error("GNEWS_API_KEY is not set in .env");
         return;
     }
-    const url = `https://newsapi.org/v2/top-headlines?language=en&pageSize=20`;
-    const { data } = await axios.get(url, { headers: { "X-Api-Key": ENV.NEWS_API_KEY } });
-    const items = (data?.articles || []).map((a) => ({
-        title: a.title,
-        source: a.source?.name || "NewsAPI",
-        url: a.url,
-        location: "GLOBAL",
-        lat: 0, lng: 0,
-        publishedAt: a.publishedAt ? new Date(a.publishedAt) : new Date(),
-        tags: [],
-    }));
-    for (const it of items) {
-        const sentiment = quickSentiment(it.title);
-        await Trend.findOneAndUpdate({ title: it.title, source: it.source }, { ...it, sentiment }, { upsert: true });
+    const url = `https://gnews.io/api/v4/top-headlines?lang=en&max=20&token=${API_KEY}`;
+    try {
+        const data = await fetchWithRetry(url);
+        const articles = data.articles;
+        if (!articles || articles.length === 0) {
+            console.warn("No articles returned from GNews.");
+            return;
+        }
+        // Optional: clear old trends
+        await TrendModel.deleteMany({});
+        // Save new trends
+        const trendDocs = articles.map((article) => ({
+            title: article.title,
+            description: article.description,
+            url: article.url,
+            imageUrl: article.image,
+            source: article.source.name,
+            publishedAt: new Date(article.publishedAt),
+        }));
+        await TrendModel.insertMany(trendDocs);
+        console.log(`Fetched and stored ${trendDocs.length} GNews articles.`);
+    }
+    catch (error) {
+        console.error("Failed to fetch/store GNews articles:", error.message);
     }
 }
