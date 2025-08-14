@@ -1,34 +1,53 @@
+// src/services/trendsAdapter.ts
 import axios from "axios";
-import Trend from "../models/Trend.js";
-import { ENV } from "../config/env.js";
-import { quickSentiment } from "../utils/sentiment.js";
 
-export async function fetchAndStoreTrends() {
-  if (!ENV.NEWS_API_KEY) {
-    const mocks = [
-      { title: "Tech stocks surge after earnings", source: "MockNews", location: "US-CA", lat: 37.77, lng: -122.4, url: "", publishedAt: new Date(), tags: ["tech","stocks"] },
-      { title: "Fuel price protests in Lagos", source: "MockNews", location: "NG-Lagos", lat: 6.5244, lng: 3.3792, url: "", publishedAt: new Date(), tags: ["economy","protest"] },
-      { title: "Heatwave warnings across Europe", source: "MockNews", location: "EU", lat: 50.11, lng: 8.68, url: "", publishedAt: new Date(), tags: ["weather"] }
-    ];
-    for (const m of mocks) {
-      const sentiment = quickSentiment(m.title);
-      await Trend.findOneAndUpdate({ title: m.title, source: m.source }, { ...m, sentiment }, { upsert: true });
+const NEWS_API_URL =
+  "https://newsapi.org/v2/top-headlines?language=en&pageSize=20";
+const API_KEY = process.env.NEWS_API_KEY || "";
+
+interface Article {
+  title: string;
+  description: string;
+  url: string;
+  urlToImage: string;
+  publishedAt: string;
+}
+
+async function fetchWithRetry(
+  url: string,
+  headers: any,
+  retries = 3,
+  delay = 1000
+): Promise<any> {
+  try {
+    const response = await axios.get(url, { headers });
+    return response.data;
+  } catch (err: any) {
+    if (retries > 0) {
+      console.warn(`Request failed: ${err.message}. Retrying in ${delay}ms...`);
+      await new Promise((res) => setTimeout(res, delay));
+      return fetchWithRetry(url, headers, retries - 1, delay * 2); // exponential backoff
+    } else {
+      throw err; // after all retries fail
     }
-    return;
   }
-  const url = `https://newsapi.org/v2/top-headlines?language=en&pageSize=20`;
-  const { data } = await axios.get(url, { headers: { "X-Api-Key": ENV.NEWS_API_KEY } });
-  const items = (data?.articles || []).map((a: any) => ({
-    title: a.title,
-    source: a.source?.name || "NewsAPI",
-    url: a.url,
-    location: "GLOBAL",
-    lat: 0, lng: 0,
-    publishedAt: a.publishedAt ? new Date(a.publishedAt) : new Date(),
-    tags: [] as string[],
-  }));
-  for (const it of items) {
-    const sentiment = quickSentiment(it.title);
-    await Trend.findOneAndUpdate({ title: it.title, source: it.source }, { ...it, sentiment }, { upsert: true });
+}
+
+export async function fetchAndStoreTrends(): Promise<Article[]> {
+  const headers = {
+    "X-Api-Key": API_KEY,
+    Accept: "application/json",
+    "User-Agent": "axios/1.11.0",
+  };
+
+  try {
+    const data = await fetchWithRetry(NEWS_API_URL, headers);
+    if (!data.articles) return [];
+
+    // Optionally: save articles to DB here
+    return data.articles as Article[];
+  } catch (err) {
+    console.error("Failed to fetch NewsAPI articles after retries:", err);
+    return []; // return empty array so server continues running
   }
 }
