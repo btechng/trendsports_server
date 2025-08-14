@@ -7,6 +7,8 @@ export const ENV = {
   JWT_SECRET: process.env.JWT_SECRET || "devsecret",
   NEWS_API_KEY: process.env.NEWS_API_KEY || "",
   RAPIDAPI_KEY: process.env.RAPIDAPI_KEY || "",
-  API_FOOTBALL_HOST: process.env.API_FOOTBALL_HOST || "v3.football.api-sports.io",
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY || ""
+  API_FOOTBALL_HOST:
+    process.env.API_FOOTBALL_HOST || "v3.football.api-sports.io",
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
+  FOOTBALL_DATA_KEY: process.env.FOOTBALL_DATA_KEY || "", // ✅ add this
 };
