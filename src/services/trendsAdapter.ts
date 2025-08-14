@@ -1,6 +1,6 @@
 // src/services/trendsAdapter.ts
 import axios from "axios";
-import TrendModel from "../models/Trend"; // adjust path if needed
+import TrendModel from "../models/Trend.js"; // Mongoose model
 
 const API_KEY = process.env.GNEWS_API_KEY;
 const MAX_RETRIES = 3;

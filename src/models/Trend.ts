@@ -1,14 +1,28 @@
-import { Schema, model } from "mongoose";
-const TrendSchema = new Schema({
-  title: { type: String, required: true },
-  source: { type: String, required: true },
-  url: String,
-  location: { type: String, index: true },
-  lat: Number,
-  lng: Number,
-  sentiment: { type: Number, default: 0 },
-  summary: String,
-  tags: [String],
-  publishedAt: Date
-}, { timestamps: true });
-export default model("Trend", TrendSchema);
+import { Schema, model, Document } from "mongoose";
+
+export interface ITrend extends Document {
+  title?: string;
+  description?: string;
+  url?: string;
+  imageUrl?: string;
+  source?: string;
+  publishedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const trendSchema = new Schema<ITrend>(
+  {
+    title: { type: String },
+    description: { type: String },
+    url: { type: String },
+    imageUrl: { type: String },
+    source: { type: String },
+    publishedAt: { type: Date },
+  },
+  { timestamps: true }
+);
+
+const TrendModel = model<ITrend>("Trend", trendSchema);
+
+export default TrendModel;

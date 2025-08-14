@@ -1,16 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ES2020", // Modern JS output
-    "module": "ESNext", // Keep ES module syntax
-    "moduleResolution": "Node", // Resolve node modules
-    "outDir": "dist", // Compiled files go here
-    "rootDir": "src", // Your TS source folder
-    "strict": true, // Enable strict type checking
-    "esModuleInterop": true, // Allow default imports from CommonJS
-    "allowSyntheticDefaultImports": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "target": "ES2020",
+    "outDir": "./dist",
+    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true // Skip type checking for node_modules
+    "strict": true,
+    "skipLibCheck": true
   },
-  "include": ["src"], // Compile everything in src
-  "exclude": ["node_modules", "dist"] // Exclude these folders
+  "include": ["src/**/*.ts"]
 }

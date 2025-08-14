@@ -1,9 +1,10 @@
+// src/routes/trends.ts
 import { Router } from "express";
-import Trend from "../models/Trend.js"; // model only used inside the route
+import Trend from "../models/Trend.js";
 
-const r = Router();
+const router = Router();
 
-r.get("/", async (req, res) => {
+router.get("/", async (req, res) => {
   const { q, limit = 50 } = req.query as any;
   const filter: any = {};
   if (q) filter.title = { $regex: String(q), $options: "i" };
@@ -13,4 +14,4 @@ r.get("/", async (req, res) => {
   res.json(items);
 });
 
-export default r; // ✅ export the router, NOT the model
+export default router;
