@@ -15,6 +15,7 @@ import leaderboardRoute from "./routes/leaderboard.js";
 import { fetchAndStoreTrends } from "./services/trendsAdapter.js";
 import { fetchUpcomingFootball } from "./services/sportsAdapter.js";
 import { predictForUpcoming } from "./services/aiPredictor.js";
+import newsRouter from "./routes/news.js";
 const app = express();
 app.use(helmet());
 app.use(cors({ origin: ENV.CLIENT_ORIGIN.split(","), credentials: true }));
@@ -27,6 +28,7 @@ app.use("/api/sports", sportsRoute);
 app.use("/api/predictions", predictionsRoute);
 app.use("/api/comments", commentsRoute);
 app.use("/api/leaderboard", leaderboardRoute);
+app.use("/api/news", newsRouter);
 const server = http.createServer(app);
 setupSockets(server);
 (async () => {

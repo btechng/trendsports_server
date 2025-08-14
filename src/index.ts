@@ -15,7 +15,7 @@ import leaderboardRoute from "./routes/leaderboard.js";
 import { fetchAndStoreTrends } from "./services/trendsAdapter.js";
 import { fetchUpcomingFootball } from "./services/sportsAdapter.js";
 import { predictForUpcoming } from "./services/aiPredictor.js";
-import newsRouter from "./routes/news";
+import newsRouter from "./routes/news.js";
 
 const app = express();
 app.use(helmet());
