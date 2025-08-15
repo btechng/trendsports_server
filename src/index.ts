@@ -18,11 +18,29 @@ import { predictForUpcoming } from "./services/aiPredictor.js";
 import newsRouter from "./routes/news.js";
 
 const app = express();
+
+// Security headers
 app.use(helmet());
-app.use(cors({ origin: ENV.CLIENT_ORIGIN.split(","), credentials: true }));
+
+// Explicit CORS whitelist
+const allowedOrigins = ENV.CLIENT_ORIGIN.split(",").map((o) => o.trim());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS: Origin not allowed"));
+      }
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(cookieParser());
 
+// Routes
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 app.use("/api/auth", authRoute);
 app.use("/api/trends", trendsRoute);
@@ -35,6 +53,7 @@ app.use("/api/news", newsRouter);
 const server = http.createServer(app);
 setupSockets(server);
 
+// Start server after DB connect + background jobs
 (async () => {
   await connectDB();
   const run = async () => {
